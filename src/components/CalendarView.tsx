@@ -6,31 +6,43 @@ import { EventCard } from './EventCard'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
+const STYLE_COLORS: Record<string, string> = {
+  bachata: 'bg-rose-500',
+  salsa:   'bg-orange-500',
+  kizomba: 'bg-purple-500',
+  zouk:    'bg-blue-500',
+  other:   'bg-gray-400',
+}
+
+function primaryColor(event: Event): string {
+  return STYLE_COLORS[event.styles[0]] ?? 'bg-gray-400'
+}
+
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() &&
     a.getMonth() === b.getMonth() &&
     a.getDate() === b.getDate()
 }
 
-function startOfMonth(year: number, month: number) {
-  return new Date(year, month, 1)
-}
-
 function daysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate()
 }
 
-// Monday-based grid offset
 function gridOffset(year: number, month: number) {
   const day = new Date(year, month, 1).getDay()
   return day === 0 ? 6 : day - 1
 }
 
-interface Props {
-  events: Event[]
+// Shorten event title to fit in a small cell
+function shortTitle(title: string): string {
+  const words = title.split(' ')
+  // Drop common noise words from the end
+  const cleaned = words.filter(w => !['Festival', 'Congress', 'Edition'].includes(w))
+  const result = cleaned.join(' ')
+  return result.length > 18 ? result.slice(0, 16) + '…' : result
 }
 
-export function CalendarView({ events }: Props) {
+export function CalendarView({ events }: { events: Event[] }) {
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
@@ -43,13 +55,12 @@ export function CalendarView({ events }: Props) {
   const totalDays = daysInMonth(year, month)
   const offset = gridOffset(year, month)
 
-  // Map date string → events for fast lookup
   const eventsByDay = useMemo(() => {
-    const map = new Map<string, Event[]>()
+    const map = new Map<number, Event[]>()
     for (const event of events) {
       const d = new Date(event.starts_at)
       if (d.getFullYear() === year && d.getMonth() === month) {
-        const key = d.getDate().toString()
+        const key = d.getDate()
         if (!map.has(key)) map.set(key, [])
         map.get(key)!.push(event)
       }
@@ -59,7 +70,8 @@ export function CalendarView({ events }: Props) {
 
   const selectedEvents = useMemo(() => {
     if (!selectedDay) return []
-    return events.filter(e => isSameDay(new Date(e.starts_at), selectedDay))
+    return events
+      .filter(e => isSameDay(new Date(e.starts_at), selectedDay))
       .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
   }, [events, selectedDay])
 
@@ -77,81 +89,88 @@ export function CalendarView({ events }: Props) {
 
   function selectDay(day: number) {
     const d = new Date(year, month, day)
-    if (selectedDay && isSameDay(d, selectedDay)) {
-      setSelectedDay(null)
-    } else {
-      setSelectedDay(d)
-    }
+    setSelectedDay(prev => prev && isSameDay(d, prev) ? null : d)
   }
 
-  const cells = Array.from({ length: offset + totalDays }, (_, i) => {
-    const day = i - offset + 1
-    return day > 0 ? day : null
-  })
-
-  // Pad to full weeks
+  const cells: (number | null)[] = [
+    ...Array(offset).fill(null),
+    ...Array.from({ length: totalDays }, (_, i) => i + 1),
+  ]
   while (cells.length % 7 !== 0) cells.push(null)
 
   return (
     <div>
       {/* Month navigation */}
       <div className="mb-4 flex items-center justify-between">
-        <button
-          onClick={prevMonth}
-          className="rounded-full p-2 text-gray-500 hover:bg-gray-100 transition"
-        >
+        <button onClick={prevMonth} className="rounded-full px-3 py-2 text-lg text-gray-400 hover:bg-gray-100 transition">
           ‹
         </button>
         <span className="text-sm font-semibold text-gray-800">{monthLabel}</span>
-        <button
-          onClick={nextMonth}
-          className="rounded-full p-2 text-gray-500 hover:bg-gray-100 transition"
-        >
+        <button onClick={nextMonth} className="rounded-full px-3 py-2 text-lg text-gray-400 hover:bg-gray-100 transition">
           ›
         </button>
       </div>
 
       {/* Weekday headers */}
-      <div className="mb-1 grid grid-cols-7 text-center">
+      <div className="grid grid-cols-7 mb-1 border-b border-gray-100 pb-2">
         {WEEKDAYS.map(d => (
-          <div key={d} className="text-xs font-medium text-gray-400 py-1">{d}</div>
+          <div key={d} className="text-center text-xs font-medium text-gray-400">{d}</div>
         ))}
       </div>
 
       {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-y-1">
+      <div className="grid grid-cols-7 border-l border-t border-gray-100">
         {cells.map((day, idx) => {
-          if (!day) return <div key={`empty-${idx}`} />
+          if (!day) {
+            return (
+              <div key={`empty-${idx}`} className="border-b border-r border-gray-100 min-h-[72px] bg-gray-50/40" />
+            )
+          }
 
+          const dayEvents = eventsByDay.get(day) ?? []
+          const hasEvents = dayEvents.length > 0
           const isToday = isSameDay(new Date(year, month, day), today)
-          const hasEvents = eventsByDay.has(day.toString())
-          const eventCount = eventsByDay.get(day.toString())?.length ?? 0
           const isSelected = selectedDay ? isSameDay(new Date(year, month, day), selectedDay) : false
+          const overflow = dayEvents.length > 2
 
           return (
-            <button
+            <div
               key={day}
               onClick={() => hasEvents && selectDay(day)}
               className={`
-                relative flex flex-col items-center justify-start rounded-xl py-1.5 transition
-                ${hasEvents ? 'cursor-pointer hover:bg-rose-50' : 'cursor-default'}
-                ${isSelected ? 'bg-rose-500 text-white hover:bg-rose-500' : ''}
-                ${isToday && !isSelected ? 'font-bold text-rose-500' : ''}
-                ${!isToday && !isSelected ? 'text-gray-700' : ''}
+                border-b border-r border-gray-100 min-h-[72px] p-1 flex flex-col gap-0.5
+                ${hasEvents ? 'cursor-pointer' : ''}
+                ${isSelected ? 'bg-rose-50' : 'hover:bg-gray-50'}
               `}
             >
-              <span className="text-sm leading-none">{day}</span>
-              {hasEvents && (
-                <div className="mt-1 flex gap-0.5">
-                  {Array.from({ length: Math.min(eventCount, 3) }).map((_, i) => (
-                    <span
-                      key={i}
-                      className={`h-1 w-1 rounded-full ${isSelected ? 'bg-white' : 'bg-rose-400'}`}
-                    />
-                  ))}
+              {/* Day number */}
+              <div className="flex justify-center mb-0.5">
+                <span className={`
+                  text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full leading-none
+                  ${isToday ? 'bg-rose-500 text-white font-bold' : isSelected ? 'text-rose-600 font-bold' : 'text-gray-700'}
+                `}>
+                  {day}
+                </span>
+              </div>
+
+              {/* Event pills */}
+              {dayEvents.slice(0, 2).map(event => (
+                <div
+                  key={event.id}
+                  className={`${primaryColor(event)} rounded px-1 py-0.5 flex items-center gap-0.5`}
+                >
+                  <span className="text-white truncate leading-tight" style={{ fontSize: '9px' }}>
+                    {shortTitle(event.title)}
+                  </span>
+                </div>
+              ))}
+
+              {overflow && (
+                <div className="text-center" style={{ fontSize: '9px' }}>
+                  <span className="text-gray-400">+{dayEvents.length - 2} more</span>
                 </div>
               )}
-            </button>
+            </div>
           )
         })}
       </div>
@@ -171,7 +190,6 @@ export function CalendarView({ events }: Props) {
         </div>
       )}
 
-      {/* No events in month hint */}
       {eventsByDay.size === 0 && (
         <p className="mt-6 text-center text-sm text-gray-400">No events this month.</p>
       )}
