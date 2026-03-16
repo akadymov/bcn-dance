@@ -33,13 +33,11 @@ function gridOffset(year: number, month: number) {
   return day === 0 ? 6 : day - 1
 }
 
-// Shorten event title to fit in a small cell
 function shortTitle(title: string): string {
   const words = title.split(' ')
-  // Drop common noise words from the end
   const cleaned = words.filter(w => !['Festival', 'Congress', 'Edition'].includes(w))
   const result = cleaned.join(' ')
-  return result.length > 18 ? result.slice(0, 16) + '…' : result
+  return result.length > 16 ? result.slice(0, 14) + '…' : result
 }
 
 export function CalendarView({ events }: { events: Event[] }) {
@@ -102,74 +100,68 @@ export function CalendarView({ events }: { events: Event[] }) {
     <div>
       {/* Month navigation */}
       <div className="mb-4 flex items-center justify-between">
-        <button onClick={prevMonth} className="rounded-full px-3 py-2 text-lg text-gray-400 hover:bg-gray-100 transition">
+        <button onClick={prevMonth} className="rounded-full px-3 py-2 text-xl text-gray-400 hover:bg-gray-100 transition">
           ‹
         </button>
         <span className="text-sm font-semibold text-gray-800">{monthLabel}</span>
-        <button onClick={nextMonth} className="rounded-full px-3 py-2 text-lg text-gray-400 hover:bg-gray-100 transition">
+        <button onClick={nextMonth} className="rounded-full px-3 py-2 text-xl text-gray-400 hover:bg-gray-100 transition">
           ›
         </button>
       </div>
 
       {/* Weekday headers */}
-      <div className="grid grid-cols-7 mb-1 border-b border-gray-100 pb-2">
+      <div className="grid grid-cols-7 mb-2">
         {WEEKDAYS.map(d => (
-          <div key={d} className="text-center text-xs font-medium text-gray-400">{d}</div>
+          <div key={d} className="text-center text-xs font-medium text-gray-400 py-1">{d}</div>
         ))}
       </div>
 
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 border-l border-t border-gray-100">
+      {/* Calendar grid — no borders, clean cells */}
+      <div className="grid grid-cols-7 gap-y-1">
         {cells.map((day, idx) => {
-          if (!day) {
-            return (
-              <div key={`empty-${idx}`} className="border-b border-r border-gray-100 min-h-[72px] bg-gray-50/40" />
-            )
-          }
+          if (!day) return <div key={`empty-${idx}`} className="min-h-[64px]" />
 
           const dayEvents = eventsByDay.get(day) ?? []
           const hasEvents = dayEvents.length > 0
           const isToday = isSameDay(new Date(year, month, day), today)
           const isSelected = selectedDay ? isSameDay(new Date(year, month, day), selectedDay) : false
-          const overflow = dayEvents.length > 2
 
           return (
             <div
               key={day}
               onClick={() => hasEvents && selectDay(day)}
               className={`
-                border-b border-r border-gray-100 min-h-[72px] p-1 flex flex-col gap-0.5
-                ${hasEvents ? 'cursor-pointer' : ''}
-                ${isSelected ? 'bg-rose-50' : 'hover:bg-gray-50'}
+                min-h-[64px] flex flex-col items-center gap-0.5 rounded-xl py-1.5 px-0.5 transition
+                ${hasEvents ? 'cursor-pointer hover:bg-rose-50' : ''}
+                ${isSelected ? 'bg-rose-50' : ''}
               `}
             >
               {/* Day number */}
-              <div className="flex justify-center mb-0.5">
-                <span className={`
-                  text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full leading-none
-                  ${isToday ? 'bg-rose-500 text-white font-bold' : isSelected ? 'text-rose-600 font-bold' : 'text-gray-700'}
-                `}>
-                  {day}
-                </span>
-              </div>
+              <span className={`
+                text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full leading-none shrink-0
+                ${isToday ? 'bg-rose-500 text-white font-bold' : isSelected ? 'text-rose-600 font-bold' : 'text-gray-700'}
+              `}>
+                {day}
+              </span>
 
               {/* Event pills */}
-              {dayEvents.slice(0, 2).map(event => (
-                <div
-                  key={event.id}
-                  className={`${primaryColor(event)} rounded px-1 py-0.5 flex items-center gap-0.5`}
-                >
-                  <span className="text-white truncate leading-tight" style={{ fontSize: '9px' }}>
-                    {shortTitle(event.title)}
+              <div className="w-full flex flex-col gap-0.5 px-0.5">
+                {dayEvents.slice(0, 2).map(event => (
+                  <div
+                    key={event.id}
+                    className={`${primaryColor(event)} rounded-md px-1 py-0.5`}
+                  >
+                    <span className="text-white leading-tight block truncate" style={{ fontSize: '10px' }}>
+                      {shortTitle(event.title)}
+                    </span>
+                  </div>
+                ))}
+                {dayEvents.length > 2 && (
+                  <span className="text-gray-400 text-center leading-tight" style={{ fontSize: '10px' }}>
+                    +{dayEvents.length - 2}
                   </span>
-                </div>
-              ))}
-
-              {overflow && (
-                <div className="text-center" style={{ fontSize: '9px' }}>
-                  <span className="text-gray-400">+{dayEvents.length - 2} more</span>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )
         })}
