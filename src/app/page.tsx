@@ -8,15 +8,6 @@ export default async function HomePage() {
 
   return (
     <main className="mx-auto max-w-lg px-4 pb-12 pt-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-          bcn.dance 💃
-        </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Bachata, salsa & kizomba events in Barcelona
-        </p>
-      </div>
-
       <EventsClient events={events} />
 
       <footer className="mt-10 text-center text-xs text-gray-300">

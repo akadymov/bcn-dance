@@ -26,34 +26,40 @@ export function EventsClient({ events }: { events: Event[] }) {
 
   return (
     <>
-      {/* View toggle + filters */}
-      <div className="mb-5 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <FilterBar
-            styleFilter={styleFilter}
-            typeFilter={typeFilter}
-            onStyleChange={setStyleFilter}
-            onTypeChange={setTypeFilter}
-          />
-          <div className="ml-3 flex shrink-0 rounded-xl bg-gray-100 p-0.5">
-            <button
-              onClick={() => setView('list')}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                view === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
-              }`}
-            >
-              List
-            </button>
-            <button
-              onClick={() => setView('calendar')}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                view === 'calendar' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
-              }`}
-            >
-              Cal
-            </button>
-          </div>
+      {/* Header: title + view toggle */}
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">bcn.dance 💃</h1>
+          <p className="mt-0.5 text-sm text-gray-500">Social dance events in Barcelona</p>
         </div>
+        <div className="flex shrink-0 rounded-xl bg-gray-100 p-0.5">
+          <button
+            onClick={() => setView('list')}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+              view === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            List
+          </button>
+          <button
+            onClick={() => setView('calendar')}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+              view === 'calendar' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            Cal
+          </button>
+        </div>
+      </div>
+
+      {/* Filters — full width */}
+      <div className="mb-5">
+        <FilterBar
+          styleFilter={styleFilter}
+          typeFilter={typeFilter}
+          onStyleChange={setStyleFilter}
+          onTypeChange={setTypeFilter}
+        />
       </div>
 
       {/* Calendar view */}
